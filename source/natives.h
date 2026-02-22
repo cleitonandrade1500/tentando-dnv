@@ -2,8 +2,11 @@
 #define NATIVES_H
 
 typedef int Player; typedef int Entity; typedef int Ped; typedef int Object; typedef unsigned int Hash;
+typedef unsigned long uint64_t;
+
 struct Vector3 { float x, y, z; float padding; };
 
+// Namespaces para o compilador reconhecer os nomes que deram erro
 namespace PLAYER {
     extern "C" Player PLAYER_ID();
     extern "C" Ped PLAYER_PED_ID();
@@ -33,14 +36,25 @@ namespace OBJECT {
     extern "C" Object GET_CLOSEST_OBJECT_OF_TYPE(float x, float y, float z, float radius, Hash model, bool p5, bool p6, bool p7);
     extern "C" void SET_DOOR_STATE(Hash doorModel, float x, float y, float z, int state, float angle);
 }
+namespace FIRE {
+    extern "C" void ADD_EXPLOSION(float x, float y, float z, int type, float damage, bool audible, bool invisible, float shake);
+}
+namespace CASH {
+    extern "C" void MONEY_ADD_CASH(int amount);
+}
 namespace HUD {
-    extern "C" void _DISPLAY_TEXT(const char* text, float x, float y);
     extern "C" void _SET_TEXT_COLOR(int r, int g, int b, int a);
     extern "C" void _SET_TEXT_SCALE(float scale, float size);
+    extern "C" void _DISPLAY_TEXT(const char* text, float x, float y);
 }
-namespace PAD { extern "C" bool IS_CONTROL_PRESSED(int p0, Hash control); }
-namespace FIRE { extern "C" void ADD_EXPLOSION(float x, float y, float z, int type, float damage, bool audible, bool invisible, float shake); }
-namespace CASH { extern "C" void MONEY_ADD_CASH(int amount); }
+namespace PAD {
+    extern "C" bool IS_CONTROL_PRESSED(int p0, Hash control);
+    extern "C" bool IS_CONTROL_JUST_PRESSED(int p0, Hash control);
+}
+namespace MISC {
+    extern "C" int GET_RANDOM_INT_IN_RANGE(int min, int max);
+    extern "C" float GET_DISTANCE_BETWEEN_COORDS(float x1, float y1, float z1, float x2, float y2, float z2, bool useZ);
+}
 
 extern "C" void WAIT(int ms);
 #endif
