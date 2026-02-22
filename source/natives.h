@@ -1,96 +1,69 @@
-#ifndef NATIVES_H
-#define NATIVES_H
+#include "natives.h"
 
-#include <stdint.h>
+typedef unsigned long size_t;
+#define NULL 0
 
-// Definições de Tipos Base do RDR2
-typedef int Player; 
-typedef int Entity; 
-typedef int Ped; 
-typedef int Object; 
-typedef int Blip; 
-typedef unsigned int Hash;
-
-// Struct com padding de 16 bytes para compatibilidade PS4
-struct Vector3 { 
-    float x, y, z; 
-    float padding; 
-};
-
-// Funções do Jogo (Devem ser resolvidas pelo Linker/Invoker do GoldHEN)
-namespace PLAYER {
-    extern "C" Player PLAYER_ID(); 
-    extern "C" Ped PLAYER_PED_ID(); 
-    extern "C" int GET_PLAYER_GROUP(Player player);
-    extern "C" bool GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(Player player, Entity* entity);
-    extern "C" void SET_PLAYER_WANTED_LEVEL(Player player, int level, bool p2);
-    extern "C" void SET_PLAYER_IGNORE_LOW_HONOR_COMPLAINTS(Player player, bool toggle);
-    extern "C" bool IS_PLAYER_IN_CUTSCENE(Player player);
+extern "C" {
+    __attribute__((visibility("default"))) int module_start(size_t argc, const void* args);
+    __attribute__((visibility("default"))) int module_stop(size_t argc, const void* args);
 }
 
-namespace ENTITY {
-    extern "C" Hash GET_ENTITY_MODEL(Entity entity); 
-    extern "C" Vector3 GET_ENTITY_COORDS(Entity entity, bool alive);
-    extern "C" bool DOES_ENTITY_EXIST(Entity entity); 
-    extern "C" void DELETE_ENTITY(Entity* entity);
-    extern "C" void SET_ENTITY_HEALTH(Entity entity, int health, int p2);
-    extern "C" void SET_ENTITY_AS_MISSION_ENTITY(Entity entity, bool p1, bool p2);
+Ped meuGuarda = 0;
+int tempoGuarda = 0;
+
+void Aguardar(int ms) { WAIT(ms); }
+
+void ProcessarAssalto() {
+    Player p = PLAYER::PLAYER_ID(); 
+    Ped pP = PLAYER::PLAYER_PED_ID(); 
+    Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
+
+    // FIX DA VIDA: Força o HP ao máximo a cada frame (God Mode)
+    ENTITY::SET_ENTITY_HEALTH(pP, 200, 0);
+
+    // FIX DA MÁSCARA E POLÍCIA:
+    // Força o jogo a ignorar crimes mesmo se a polícia estiver perto
+    if (PED::IS_PED_WEARING_ANY_MASK(pP)) {
+        PLAYER::SET_PLAYER_IGNORE_LOW_HONOR_COMPLAINTS(p, true);
+        PLAYER::SET_PLAYER_WANTED_LEVEL(p, 0, false); // Limpa o Wanted se estiver de máscara
+    }
+
+    // SUPORTE DA GANGUE: L1 + Direcional Cima
+    if (PAD::IS_CONTROL_PRESSED(0, 0xF7D06352) && PAD::IS_CONTROL_PRESSED(0, 0x911CB91D)) {
+        tempoGuarda++;
+        if (tempoGuarda >= 150) {
+            Hash sel = 0x106561CA;
+            STREAMING::REQUEST_MODEL(sel, false);
+            if (STREAMING::HAS_MODEL_LOADED(sel)) {
+                if (ENTITY::DOES_ENTITY_EXIST(meuGuarda)) ENTITY::DELETE_ENTITY(&meuGuarda);
+                meuGuarda = PED::CREATE_PED(sel, pos.x + 2.0f, pos.y, pos.z, 0.0f, false, false, false, false);
+                PED::SET_PED_AS_GROUP_MEMBER(meuGuarda, PLAYER::GET_PLAYER_GROUP(p));
+                tempoGuarda = 0;
+            }
+        }
+    } else tempoGuarda = 0;
+
+    // ABERTURA DE PORTAS: Agora com raio maior e forçando "Mission Entity"
+    if (PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(p, NULL)) {
+        Hash portas[] = { 0x7C030E57, 0x5D35D3D1, 0x242D7D7D, 0x4894379D, 0x5395A642 };
+        for(int i = 0; i < 5; i++) {
+            Object d = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 50.0f, portas[i], false, false, true);
+            if (ENTITY::DOES_ENTITY_EXIST(d)) {
+                ENTITY::SET_ENTITY_AS_MISSION_ENTITY(d, true, true);
+                OBJECT::SET_DOOR_STATE(portas[i], pos.x, pos.y, pos.z, 3, 0.0f);
+            }
+        }
+    }
 }
 
-namespace PED {
-    extern "C" Ped CREATE_PED(Hash model, float x, float y, float z, float heading, bool p5, bool p6, bool p7, bool p8);
-    extern "C" bool IS_PED_WEARING_ANY_MASK(Ped ped); 
-    extern "C" void SET_PED_AS_GROUP_MEMBER(Ped ped, int groupID);
-    extern "C" void SET_PED_CONFIG_FLAG(Ped ped, int flag, bool value);
+extern "C" int module_start(size_t argc, const void* args) {
+    // Delay de 45 segundos para o Havana não "matar" o mod
+    for(int i = 0; i < 450; i++) { Aguardar(100); }
+    while (true) {
+        ProcessarAssalto();
+        Aguardar(0); 
+    }
+    return 0;
 }
 
-namespace TASK {
-    extern "C" void TASK_HANDS_UP(Ped ped, int duration, Ped facingPed, int p3, bool p4);
-    extern "C" void TASK_COMBAT_PED(Ped ped, Ped target, int p2, int p3);
-}
-
-namespace STREAMING {
-    extern "C" void REQUEST_MODEL(Hash model, bool p1); 
-    extern "C" bool HAS_MODEL_LOADED(Hash model);
-    extern "C" void SET_MODEL_AS_NO_LONGER_NEEDED(Hash model);
-}
-
-namespace OBJECT {
-    extern "C" Object GET_CLOSEST_OBJECT_OF_TYPE(float x, float y, float z, float radius, Hash model, bool p5, bool p6, bool p7);
-    extern "C" void SET_DOOR_STATE(Hash doorModel, float x, float y, float z, int state, float angle);
-}
-
-namespace HUD {
-    extern "C" void _DISPLAY_TEXT(const char* text, float x, float y);
-    extern "C" void _SET_TEXT_COLOR(int r, int g, int b, int a);
-    extern "C" void _SET_TEXT_SCALE(float scale, float size);
-}
-
-namespace MISC { 
-    extern "C" Hash GET_HASH_KEY(const char* str); 
-    extern "C" bool GET_MISSION_FLAG();
-    extern "C" int GET_RANDOM_INT_IN_RANGE(int min, int max);
-    extern "C" float GET_DISTANCE_BETWEEN_COORDS(float x1, float y1, float z1, float x2, float y2, float z2, bool useZ);
-}
-
-namespace PAD { 
-    extern "C" bool IS_CONTROL_PRESSED(int p0, Hash control); 
-    extern "C" bool IS_CONTROL_JUST_PRESSED(int p0, Hash control); 
-}
-
-namespace FIRE { 
-    extern "C" void ADD_EXPLOSION(float x, float y, float z, int type, float damage, bool audible, bool invisible, float shake); 
-}
-
-namespace CASH { 
-    extern "C" void MONEY_ADD_CASH(int amount); 
-}
-
-namespace WEAPON { 
-    extern "C" void GIVE_WEAPON_TO_PED(Ped ped, Hash weaponHash, int ammoCount, bool p3, bool p4); 
-}
-
-// Definição global de espera (Yield) do sistema
-extern "C" void WAIT(int ms);
-
-#endif
+extern "C" int module_stop(size_t argc, const void* args) { return 0; }
