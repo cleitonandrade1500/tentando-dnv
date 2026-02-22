@@ -1,32 +1,10 @@
-name: Compilar Mod Direto
-on: [push, workflow_dispatch]
+LIB_NAME := RDR2_Assalto
+CXX      := clang++
+CFLAGS   := -O3 -std=c++11 -fno-stack-protector -fPIC -I./source -D__PS4__
+LDFLAGS  := -T linker.x -shared -nodefaultlibs
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@v4
+all: $(LIB_NAME).sprx
 
-      - name: Baixar SDK Scene-Collective
-        run: |
-          # Link CORRIGIDO do SDK para PS4
-          git clone --depth 1 https://github.com/Scene-Collective/ps4-payload-sdk.git sdk
-          echo "PS4SDK=$GITHUB_WORKSPACE/sdk" >> $GITHUB_ENV
-
-      - name: Instalar Compilador
-        run: sudo apt-get update && sudo apt-get install -y clang lld llvm make
-
-      - name: Compilar SPRX
-        run: |
-          make clean
-          make
-        env:
-          CC: clang
-          CXX: clang++
-
-      - name: Salvar Mod Pronto
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mod_RDR2_CUSA03041
-          path: "*.sprx"
+$(LIB_NAME).sprx: source/main.cpp
+	$(CXX) $(CFLAGS) source/main.cpp -o $@ $(LDFLAGS)
+	llvm-strip --strip-unneeded $@
