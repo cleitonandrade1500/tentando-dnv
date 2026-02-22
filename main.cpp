@@ -1,30 +1,28 @@
-// Comando global para ativar/desativar
-bool roubar_on = false;
+// Definição do comando requisitado
+bool roubar_on = true; 
 
-void ProcessBankRobbery() {
-    if (!roubar_on) return;
+void CheckBankerAim() {
+    if (roubar_on) {
+        Player player = PLAYER::PLAYER_ID();
+        Ped playerPed = PLAYER::PLAYER_PED_ID();
+        Entity targetEntity;
 
-    // Obtém o NPC que o jogador está mirando
-    Entity target;
-    if (PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(PLAYER::PLAYER_ID(), &target)) {
-        if (ENTITY::IS_ENTITY_A_PED(target)) {
-            Ped npc = (Ped)target;
-            // Verifica se é um banqueiro (Model Hash ou Check de Localização)
-            // Aqui usamos uma lógica simplificada para qualquer NPC em bancos
-            
-            if (PED::IS_PED_MODEL(npc, MISC::GET_HASH_KEY("U_M_M_BANKWALKER_01")) || 
-                PED::IS_PED_MODEL(npc, MISC::GET_HASH_KEY("S_M_M_BANKCLERK_01"))) {
-                
-                // Animação de render do banqueiro
-                TASK::TASK_HANDS_UP(npc, -1, PLAYER::PLAYER_PED_ID(), -1, false);
-                
-                // Lógica para abrir cofres próximos
-                Object vaultDoor = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(ENTITY::GET_ENTITY_COORDS(npc, true).x, ENTITY::GET_ENTITY_COORDS(npc, true).y, ENTITY::GET_ENTITY_COORDS(npc, true).z, 10.0f, MISC::GET_HASH_KEY("p_door_vault01x"), false, false, true);
-                
-                if (ENTITY::DOES_ENTITY_EXIST(vaultDoor)) {
-                    OBJECT::DOOR_CONTROL(MISC::GET_HASH_KEY("p_door_vault01x"), ENTITY::GET_ENTITY_COORDS(vaultDoor, true).x, ENTITY::GET_ENTITY_COORDS(vaultDoor, true).y, ENTITY::GET_ENTITY_COORDS(vaultDoor, true).z, false, 1.0f, 0.0f, 0);
-                    // Adiciona dinheiro diretamente ao inventário (ex: $500)
-                    CASH::INVENTORY_ADD_CASH_INVENTORY_ITEM(50000, 1); 
+        if (PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(player, &targetEntity)) {
+            if (ENTITY::IS_ENTITY_A_PED(targetEntity)) {
+                // IDs de Banqueiros e Gerentes
+                Hash model = ENTITY::GET_ENTITY_MODEL(targetEntity);
+                if (model == MISC::GET_HASH_KEY("U_M_M_BANKWALKER_01") || model == 0x2C047466) {
+                    
+                    // Ação: Abrir Cofre e Dar Dinheiro
+                    TASK::TASK_HANDS_UP(targetEntity, -1, playerPed, -1, false);
+                    ENTITY::SET_ENTITY_AS_MISSION_ENTITY(targetEntity, true, true);
+                    
+                    // Comando para abrir cofres próximos (Vaults)
+                    Object vault = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(ENTITY::GET_ENTITY_COORDS(playerPed, 1).x, ENTITY::GET_ENTITY_COORDS(playerPed, 1).y, ENTITY::GET_ENTITY_COORDS(playerPed, 1).z, 20.0, 0x12345678, false, false, true);
+                    OBJECT::DOOR_CONTROL(0x12345678, ENTITY::GET_ENTITY_COORDS(vault, 1).x, ENTITY::GET_ENTITY_COORDS(vault, 1).y, ENTITY::GET_ENTITY_COORDS(vault, 1).z, false, 1.0, 0.0, 0);
+                    
+                    // Adiciona $1.000 direto na carteira
+                    CASH::INVENTORY_ADD_CASH_INVENTORY_ITEM(100000, 1); 
                 }
             }
         }
