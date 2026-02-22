@@ -1,15 +1,32 @@
 name: Compilar Mod Direto
-on: [push]
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/ps4-payload-sdk/toolchain:latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        run: make
-      - name: Upload
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar Compilador (Clang/LLVM)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm
+
+      - name: Baixar SDK Necessário
+        run: |
+          git clone --depth 1 https://github.com sdk
+          echo "PS4SDK=$GITHUB_WORKSPACE/sdk" >> $GITHUB_ENV
+
+      - name: Compilar SPRX
+        run: |
+          make clean
+          make
+        env:
+          CC: clang
+          CXX: clang++
+
+      - name: Upload do Mod Pronto
         uses: actions/upload-artifact@v4
         with:
           name: Mod_Assalto_PS4
