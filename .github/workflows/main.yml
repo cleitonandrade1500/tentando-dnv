@@ -10,8 +10,8 @@ jobs:
 
       - name: Baixar SDK Scene-Collective
         run: |
-          # Link funcional do SDK para PS4
-          git clone --depth 1 https://github.com sdk
+          # Link CORRIGIDO do SDK para PS4
+          git clone --depth 1 https://github.com/Scene-Collective/ps4-payload-sdk.git sdk
           echo "PS4SDK=$GITHUB_WORKSPACE/sdk" >> $GITHUB_ENV
 
       - name: Instalar Compilador
