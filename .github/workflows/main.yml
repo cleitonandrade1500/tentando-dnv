@@ -1,0 +1,27 @@
+name: Build RDR2 PS4 Mod
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install PS4 SDK
+        run: |
+          git clone https://github.com
+          # Configurar variáveis de ambiente do SDK
+
+      - name: Compile SPRX (CUSA03140 1.32)
+        run: |
+          make clean && make
+        env:
+          TITLE_ID: CUSA03140
+          APP_VER: 01.32
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: Havana_RDR2_v132
+          path: bin/*.sprx
