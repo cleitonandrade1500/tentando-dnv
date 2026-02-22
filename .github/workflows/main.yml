@@ -8,17 +8,18 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Instalar Compilador (Clang/LLVM)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang lld llvm
-
       - name: Baixar SDK Necessário
         run: |
+          # Link direto para o SDK de RDR2 PS4
           git clone --depth 1 https://github.com sdk
           echo "PS4SDK=$GITHUB_WORKSPACE/sdk" >> $GITHUB_ENV
 
-      - name: Compilar SPRX
+      - name: Instalar Ferramentas de Compilação
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm make
+
+      - name: Compilar SPRX (CUSA03140 1.32)
         run: |
           make clean
           make
@@ -29,5 +30,5 @@ jobs:
       - name: Upload do Mod Pronto
         uses: actions/upload-artifact@v4
         with:
-          name: Mod_Assalto_PS4
+          name: Mod_Assalto_CUSA03140_v132
           path: "*.sprx"
