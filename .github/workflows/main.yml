@@ -1,24 +1,16 @@
-name: Compilar Havana RDR2 PS4
-on: [push, workflow_dispatch]
+name: Compilar Mod Direto
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ghcr.io/ps4-payload-sdk/toolchain:latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup PS4 Toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake setup-toolchain-ps4 # Exemplo de dependência
-          
-      - name: Build SPRX CUSA03140
-        run: |
-          make clean
-          make TARGET_ID=CUSA03140 VER=1.32
-          
-      - name: Salvar Mod Pronto
-        uses: actions/upload-artifact@v3
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make
+      - name: Upload
+        uses: actions/upload-artifact@v4
         with:
-          name: RDR2_Assalto_Mod
-          path: bin/*.sprx
+          name: Mod_Assalto_PS4
+          path: "*.sprx"
