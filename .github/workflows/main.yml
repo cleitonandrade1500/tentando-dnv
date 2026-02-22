@@ -28,5 +28,5 @@ jobs:
       - name: Salvar Mod Pronto
         uses: actions/upload-artifact@v4
         with:
-          name: Mod_RDR2_CUSA03140
+          name: Mod_RDR2_CUSA03041
           path: "*.sprx"
