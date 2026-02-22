@@ -1,11 +1,16 @@
 #include "natives.h"
 
-// Definições de sistema para PS4
+// Definições para evitar erros de compilação sem bibliotecas padrão
 typedef unsigned long size_t;
 #define NULL 0
 
-// Variáveis de controle
-bool assaltoAtivo = false;
+// HEADER OBRIGATÓRIO PARA GOLDHEN 2.4 / FPKG
+extern "C" {
+    __attribute__((visibility("default"))) int module_start(size_t argc, const void* args);
+    __attribute__((visibility("default"))) int module_stop(size_t argc, const void* args);
+}
+
+// Variáveis de Controle
 Ped meuGuarda = 0;
 int tempoGuarda = 0;
 
@@ -16,8 +21,10 @@ void ProcessarAssalto() {
     Ped pP = PLAYER::PLAYER_PED_ID(); 
     Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
 
-    // 1. SUPORTE DA GANGUE (L1 + D-Pad Cima)
-    // Segure por 2 segundos para spawnar o John Marston
+    // TESTE DE INJEÇÃO: Mantém HP cheio (Se o HP recuperar, o mod está ON)
+    ENTITY::SET_ENTITY_HEALTH(pP, 200, 0);
+
+    // SUPORTE DA GANGUE: Segurar L1 + D-Pad Cima
     if (PAD::IS_CONTROL_PRESSED(0, 0xF7D06352) && PAD::IS_CONTROL_PRESSED(0, 0x911CB91D)) {
         tempoGuarda++;
         if (tempoGuarda >= 200) {
@@ -32,44 +39,38 @@ void ProcessarAssalto() {
         }
     } else tempoGuarda = 0;
 
-    // 2. ABERTURA DE PORTAS (Ao Mirar)
-    // Se você estiver mirando com arma, as portas dos cofres abrem em 30m
+    // ABERTURA DE PORTAS: Ao Mirar em Bancos (Valentine, Rhodes, St Denis)
     if (PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(p, NULL)) {
         Hash portas[] = { 0x7C030E57, 0x5D35D3D1, 0x242D7D7D, 0x4894379D, 0x5395A642 };
         for(int i = 0; i < 5; i++) {
-            Object portaObj = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 30.0f, portas[i], false, false, true);
-            if (ENTITY::DOES_ENTITY_EXIST(portaObj)) {
+            Object d = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 30.0f, portas[i], false, false, true);
+            if (ENTITY::DOES_ENTITY_EXIST(d)) {
                 OBJECT::SET_DOOR_STATE(portas[i], pos.x, pos.y, pos.z, 3, 0.0f);
             }
         }
     }
 
-    // 3. ROUBO DE COFRES (Pressionar TRIÂNGULO perto do cofre)
+    // ROUBO DE COFRES: Triângulo perto de um cofre
     Hash cofres[] = { 0x1873C856, 0x5395A642, 0x0E63B489 };
     for(int i = 0; i < 3; i++) {
         Object cf = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 3.0f, cofres[i], false, false, true);
         if (ENTITY::DOES_ENTITY_EXIST(cf) && PAD::IS_CONTROL_JUST_PRESSED(0, 0x07CEABE4)) {
             FIRE::ADD_EXPLOSION(pos.x, pos.y, pos.z, 2, 1.0f, true, false, 1.0f);
-            CASH::MONEY_ADD_CASH(150000); // Adiciona $1500.00
+            CASH::MONEY_ADD_CASH(200000); // $2000.00
             ENTITY::DELETE_ENTITY(&cf);
         }
     }
 }
 
-// Entry Point Exportado para o GoldHEN
-extern "C" {
-    __attribute__((visibility("default"))) int _main(size_t argc, const void* args) {
-        // Aguarda 30 segundos para o Havana carregar
-        for(int i = 0; i < 300; i++) { Aguardar(100); }
-
-        while (true) {
-            ProcessarAssalto();
-            Aguardar(0);
-        }
-        return 0;
+// ENTRY POINT QUE O GOLDHEN CHAMA
+extern "C" int module_start(size_t argc, const void* args) {
+    // Delay de 45 segundos para o Havana e o FPKG carregarem
+    for(int i = 0; i < 450; i++) { Aguardar(100); }
+    while (true) {
+        ProcessarAssalto();
+        Aguardar(0); 
     }
-    
-    // Nomes padrão que o GoldHEN busca
-    __attribute__((visibility("default"))) int module_start(size_t argc, const void* args) { return _main(argc, args); }
-    __attribute__((visibility("default"))) int module_stop(size_t argc, const void* args) { return 0; }
+    return 0;
 }
+
+extern "C" int module_stop(size_t argc, const void* args) { return 0; }
