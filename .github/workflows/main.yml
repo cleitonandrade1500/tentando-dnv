@@ -5,25 +5,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout do codigo
         uses: actions/checkout@v4
 
-      - name: Baixar SDK Necessario
+      - name: Baixar SDK Scene-Collective
         run: |
+          # Link funcional do SDK para PS4
           git clone --depth 1 https://github.com sdk
           echo "PS4SDK=$GITHUB_WORKSPACE/sdk" >> $GITHUB_ENV
 
       - name: Instalar Compilador
         run: sudo apt-get update && sudo apt-get install -y clang lld llvm make
 
-      - name: Compilar
-        run: make
+      - name: Compilar SPRX
+        run: |
+          make clean
+          make
         env:
           CC: clang
           CXX: clang++
 
-      - name: Baixar Mod Pronto
+      - name: Salvar Mod Pronto
         uses: actions/upload-artifact@v4
         with:
-          name: Mod_Assalto_CUSA03140
+          name: Mod_RDR2_CUSA03140
           path: "*.sprx"
