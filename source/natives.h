@@ -10,7 +10,7 @@ typedef unsigned int Hash;
 
 struct Vector3 { 
     float x, y, z; 
-    float padding; // Necessário para o alinhamento de memória no PS4
+    float padding; // Alinhamento de memória para o processador do PS4
 };
 
 namespace PLAYER {
@@ -18,8 +18,8 @@ namespace PLAYER {
     extern Ped PLAYER_PED_ID();
     extern bool GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(Player player, Entity* entity);
     extern void SET_PLAYER_WANTED_LEVEL(Player player, int level, bool p2);
-    extern int GET_PLAYER_WANTED_LEVEL(Player player);
     extern void CLEAR_PLAYER_WANTED_LEVEL(Player player);
+    extern void SET_PLAYER_IGNORE_LOW_HONOR_COMPLAINTS(Player player, bool toggle);
 }
 
 namespace ENTITY {
@@ -27,14 +27,14 @@ namespace ENTITY {
     extern Vector3 GET_ENTITY_COORDS(Entity entity, bool alive);
     extern bool DOES_ENTITY_EXIST(Entity entity);
     extern void SET_ENTITY_AS_MISSION_ENTITY(Entity entity, bool p1, bool p2);
-    extern void SET_ENTITY_AS_NO_LONGER_NEEDED(Entity* entity);
-    extern void DELETE_ENTITY(Entity* entity); // Essencial para o cofre
+    extern void DELETE_ENTITY(Entity* entity);
     extern void SET_ENTITY_PROOFS(Entity entity, bool p1, bool p2, bool p3, bool p4, bool p5, bool p6, bool p7, bool p8);
 }
 
 namespace PED {
     extern Ped CREATE_PED(Hash model, float x, float y, float z, float heading, bool p5, bool p6, bool p7, bool p8);
     extern void SET_PED_RELATIONSHIP_GROUP_HASH(Ped ped, Hash group);
+    extern bool IS_PED_WEARING_ANY_MASK(Ped ped);
 }
 
 namespace STREAMING {
@@ -50,11 +50,13 @@ namespace TASK {
 
 namespace OBJECT {
     extern Object GET_CLOSEST_OBJECT_OF_TYPE(float x, float y, float z, float radius, Hash model, bool p5, bool p6, bool p7);
-    // Substitui DOOR_CONTROL por SET_DOOR_STATE para funcionar no PS4
     extern void SET_DOOR_STATE(Hash doorModel, float x, float y, float z, int state, float angle);
 }
 
 namespace HUD {
+    extern void _DISPLAY_TEXT(const char* text, float x, float y);
+    extern void _SET_TEXT_COLOR(int r, int g, int b, int a);
+    extern void _SET_TEXT_SCALE(float scale, float size);
     extern void SET_BLIP_SPRITE(Blip blip, Hash spriteHash);
     extern void SET_BLIP_COLOUR(Blip blip, int colour);
 }
