@@ -1,66 +1,93 @@
 #include "natives.h"
 
+// Variáveis de Controle
 bool assaltoAtivo = false;
 Vector3 localCrime = {0.0f, 0.0f, 0.0f, 0.0f};
 Ped meuGuarda = 0;
 int tempoGuarda = 0;
-int tempoRelatorio = 0;
+
+// Sistema de espera para o PS4
+void Aguardar(int ms) { WAIT(ms); }
 
 void GerenciarGuarda() {
-    Player p = PLAYER::PLAYER_ID(); Ped pP = PLAYER::PLAYER_PED_ID(); Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
-    if (MISC::GET_MISSION_FLAG() || PLAYER::IS_PLAYER_IN_CUTSCENE(p)) {
-        if (ENTITY::DOES_ENTITY_EXIST(meuGuarda)) { ENTITY::DELETE_ENTITY(&meuGuarda); meuGuarda = 0; }
-        return;
-    }
+    Player p = PLAYER::PLAYER_ID(); 
+    Ped pP = PLAYER::PLAYER_PED_ID(); 
+    Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
+
     if (PAD::IS_CONTROL_PRESSED(0, 0xDB60C503) && PAD::IS_CONTROL_PRESSED(0, 0x3C0A40F2)) {
         tempoGuarda++;
-        if (tempoGuarda >= 500) {
+        if (tempoGuarda >= 300) { // ~3 segundos
             Hash sel = 0x106561CA; // John Marston
             STREAMING::REQUEST_MODEL(sel, false);
-            while (!STREAMING::HAS_MODEL_LOADED(sel)) { WAIT(10); }
+            while (!STREAMING::HAS_MODEL_LOADED(sel)) { Aguardar(10); }
+            
             if (ENTITY::DOES_ENTITY_EXIST(meuGuarda)) ENTITY::DELETE_ENTITY(&meuGuarda);
             meuGuarda = PED::CREATE_PED(sel, pos.x + 2.0f, pos.y, pos.z, 0.0f, false, false, false, false);
             PED::SET_PED_AS_GROUP_MEMBER(meuGuarda, PLAYER::GET_PLAYER_GROUP(p));
             PED::SET_PED_CONFIG_FLAG(meuGuarda, 279, true);
-            tempoGuarda = 0; HUD::_DISPLAY_TEXT("GANGUE CHEGOU!", 0.5f, 0.85f);
+            HUD::_DISPLAY_TEXT("GANGUE CHEGOU!", 0.5f, 0.85f);
+            tempoGuarda = 0;
         }
     } else tempoGuarda = 0;
 }
 
 void ProcessarAssalto() {
-    Player p = PLAYER::PLAYER_ID(); Ped pP = PLAYER::PLAYER_PED_ID(); Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
-    HUD::_SET_TEXT_COLOR(255, 255, 255, 255); HUD::_SET_TEXT_SCALE(0.30f, 0.30f); HUD::_DISPLAY_TEXT("ROUBAR ON", 0.5f, 0.94f);
+    Player p = PLAYER::PLAYER_ID(); 
+    Ped pP = PLAYER::PLAYER_PED_ID(); 
+    Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
+
+    HUD::_SET_TEXT_COLOR(255, 255, 255, 255);
+    HUD::_SET_TEXT_SCALE(0.30f, 0.30f);
+    HUD::_DISPLAY_TEXT("ASSALTO PRO 1.32 ON", 0.5f, 0.94f);
     
     GerenciarGuarda();
-    PLAYER::SET_PLAYER_IGNORE_LOW_HONOR_COMPLAINTS(p, PED::IS_PED_WEARING_ANY_MASK(pP));
 
+    // 1. Abertura Automática ao Mirar (Raio de 50 metros)
     Entity alvo;
     if (!assaltoAtivo && PLAYER::GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(p, &alvo)) {
         Hash m = ENTITY::GET_ENTITY_MODEL(alvo);
-        if (m == 0x2C047466 || m == 0x959E7979 || m == 0x19273D6B) {
-            assaltoAtivo = true; 
-            TASK::TASK_HANDS_UP(alvo, -1, pP, -1, false);
+        if (m == 0x2C047466 || m == 0x959E7979) { // Caixas de Valentine/Rhodes
+            assaltoAtivo = true;
+            localCrime = pos;
+            PLAYER::SET_PLAYER_WANTED_LEVEL(p, 4, false);
             
+            // Portas de Bancos (Valentine, Rhodes, Saint Denis)
             Hash pts[] = { 0x7C030E57, 0x5D35D3D1, 0x242D7D7D, 0x4894379D, 0x5395A642 };
             for(int i=0; i<5; i++) {
-                Object d = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 20.0f, pts[i], false, false, true);
-                if (ENTITY::DOES_ENTITY_EXIST(d)) OBJECT::SET_DOOR_STATE(pts[i], pos.x, pos.y, pos.z, 3, 0.0f);
+                Object d = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 50.0f, pts[i], false, false, true);
+                if (ENTITY::DOES_ENTITY_EXIST(d)) {
+                    OBJECT::SET_DOOR_STATE(pts[i], pos.x, pos.y, pos.z, 3, 0.0f);
+                }
             }
-            PLAYER::SET_PLAYER_WANTED_LEVEL(p, 4, false); localCrime = pos;
+            HUD::_DISPLAY_TEXT("BANCO INVADIDO!", 0.5f, 0.80f);
         }
     }
 
-    Hash cfs[] = { 0x1873C856, 0x5395A642, 0x0E63B489 };
+    // 2. Explodir Cofres e Roubar
+    Hash cofres[] = { 0x1873C856, 0x5395A642, 0x0E63B489 };
     for(int i=0; i<3; i++) {
-        Object cf = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 4.5f, cfs[i], false, false, true);
-        if (ENTITY::DOES_ENTITY_EXIST(cf) && PAD::IS_CONTROL_JUST_PRESSED(0, 0x07CEABE4)) {
-            FIRE::ADD_EXPLOSION(pos.x, pos.y, pos.z, 2, 2.0f, true, false, 2.0f);
+        Object cf = OBJECT::GET_CLOSEST_OBJECT_OF_TYPE(pos.x, pos.y, pos.z, 3.5f, cofres[i], false, false, true);
+        if (ENTITY::DOES_ENTITY_EXIST(cf) && PAD::IS_CONTROL_JUST_PRESSED(0, 0x07CEABE4)) { // Botão Triângulo/E
+            FIRE::ADD_EXPLOSION(pos.x, pos.y, pos.z, 2, 1.0f, true, false, 1.0f);
             ENTITY::DELETE_ENTITY(&cf);
-            CASH::MONEY_ADD_CASH(MISC::GET_RANDOM_INT_IN_RANGE(10000, 300000));
+            CASH::MONEY_ADD_CASH(MISC::GET_RANDOM_INT_IN_RANGE(15000, 350000));
             HUD::_DISPLAY_TEXT("SAQUE CONCLUIDO!", 0.5f, 0.85f);
         }
     }
-    if (assaltoAtivo && MISC::GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, localCrime.x, localCrime.y, localCrime.z, true) > 120.0f) assaltoAtivo = false;
+
+    if (assaltoAtivo && MISC::GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, localCrime.x, localCrime.y, localCrime.z, true) > 150.0f) {
+        assaltoAtivo = false;
+    }
 }
 
-extern "C" int _start() { while (true) { ProcessarAssalto(); WAIT(0); } return 0; }
+// Entry Point para GoldHEN
+extern "C" int module_start(size_t argc, const void* args) {
+    // Thread principal em loop infinito
+    while (true) {
+        ProcessarAssalto();
+        Aguardar(0);
+    }
+    return 0;
+}
+
+extern "C" int module_stop(size_t argc, const void* args) { return 0; }
