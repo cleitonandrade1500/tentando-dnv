@@ -1,10 +1,30 @@
-LIB_NAME := RDR2_Assalto
-CXX      := clang++
-CFLAGS   := -O3 -std=c++11 -fno-stack-protector -fPIC -I./source -D__PS4__
-LDFLAGS  := -T linker.x -shared -nodefaultlibs
+name: Compilar Mod RDR2 PS4 2026
+on: [push, workflow_dispatch]
 
-all: $(LIB_NAME).sprx
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código (v4)
+        uses: actions/checkout@v4
 
-$(LIB_NAME).sprx: source/main.cpp
-	$(CXX) $(CFLAGS) source/main.cpp -o $@ $(LDFLAGS)
-	llvm-strip --strip-unneeded $@
+      - name: Configurar Ambiente de Compilação
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm make git
+
+      - name: Executar Compilação SPRX
+        run: |
+          # O comando 'make clean' agora existe no Makefile
+          make clean || true
+          make
+        env:
+          CC: clang
+          CXX: clang++
+
+      - name: Upload do Mod Pronto (v4)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mod_RDR2_CUSA03041_2026
+          path: "*.sprx"
+          if-no-files-found: error
