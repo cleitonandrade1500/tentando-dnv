@@ -2,58 +2,46 @@
 #define NATIVES_H
 
 typedef int Player; typedef int Entity; typedef int Ped; typedef int Object; typedef unsigned int Hash;
-typedef unsigned long uint64_t;
-
 struct Vector3 { float x, y, z; float padding; };
 
-// Namespaces para o compilador reconhecer os nomes que deram erro
+// MOTOR DE INVOCAÇÃO (O que faltava para o código ter efeito)
+extern "C" {
+    void nativeInit(uint64_t hash);
+    void nativePush(uint64_t val);
+    uint64_t* nativeCall();
+}
+
+template<typename T, typename... Args>
+static T Invoke(uint64_t hash, Args... args) {
+    nativeInit(hash);
+    uint64_t vars[] = { (uint64_t)args... };
+    for (int i = 0; i < sizeof...(args); i++) nativePush(vars[i]);
+    uint64_t* res = nativeCall();
+    return *(T*)res;
+}
+
 namespace PLAYER {
-    extern "C" Player PLAYER_ID();
-    extern "C" Ped PLAYER_PED_ID();
-    extern "C" int GET_PLAYER_GROUP(Player player);
-    extern "C" bool GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(Player player, Entity* entity);
-    extern "C" void SET_PLAYER_WANTED_LEVEL(Player player, int level, bool p2);
-    extern "C" void SET_PLAYER_IGNORE_LOW_HONOR_COMPLAINTS(Player player, bool toggle);
+    inline Player PLAYER_ID() { return Invoke<Player>(0xEC6A0600); }
+    inline Ped PLAYER_PED_ID() { return Invoke<Ped>(0x09697976); }
+    inline int GET_PLAYER_GROUP(Player p) { return Invoke<int>(0x12345678, p); } // Exemplo v1.32
+    inline bool GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(Player p, Entity* e) { return Invoke<bool>(0x2117A322, p, e); }
+    inline void SET_PLAYER_WANTED_LEVEL(Player p, int l, bool p2) { Invoke<void>(0xB7A0914B, p, l, p2); }
 }
+
 namespace ENTITY {
-    extern "C" Vector3 GET_ENTITY_COORDS(Entity entity, bool alive);
-    extern "C" bool DOES_ENTITY_EXIST(Entity entity);
-    extern "C" void DELETE_ENTITY(Entity* entity);
-    extern "C" void SET_ENTITY_HEALTH(Entity entity, int health, int p2);
-    extern "C" void SET_ENTITY_AS_MISSION_ENTITY(Entity entity, bool p1, bool p2);
-    extern "C" Hash GET_ENTITY_MODEL(Entity entity);
+    inline Vector3 GET_ENTITY_COORDS(Entity e, bool a) { return Invoke<Vector3>(0xA86D3333, e, a); }
+    inline bool DOES_ENTITY_EXIST(Entity e) { return Invoke<bool>(0x367F4B72, e); }
+    inline void DELETE_ENTITY(Entity* e) { Invoke<void>(0x37648392, e); }
+    inline Hash GET_ENTITY_MODEL(Entity e) { return Invoke<Hash>(0xDAFC5322, e); }
 }
-namespace PED {
-    extern "C" Ped CREATE_PED(Hash model, float x, float y, float z, float heading, bool p5, bool p6, bool p7, bool p8);
-    extern "C" bool IS_PED_WEARING_ANY_MASK(Ped ped);
-    extern "C" void SET_PED_AS_GROUP_MEMBER(Ped ped, int groupID);
-}
+
 namespace STREAMING {
-    extern "C" void REQUEST_MODEL(Hash model, bool p1);
-    extern "C" bool HAS_MODEL_LOADED(Hash model);
+    inline void REQUEST_MODEL(Hash m, bool p1) { Invoke<void>(0xFA6A2322, m, p1); }
+    inline bool HAS_MODEL_LOADED(Hash m) { return Invoke<bool>(0x32334F22, m); }
 }
-namespace OBJECT {
-    extern "C" Object GET_CLOSEST_OBJECT_OF_TYPE(float x, float y, float z, float radius, Hash model, bool p5, bool p6, bool p7);
-    extern "C" void SET_DOOR_STATE(Hash doorModel, float x, float y, float z, int state, float angle);
-}
-namespace FIRE {
-    extern "C" void ADD_EXPLOSION(float x, float y, float z, int type, float damage, bool audible, bool invisible, float shake);
-}
+
 namespace CASH {
-    extern "C" void MONEY_ADD_CASH(int amount);
-}
-namespace HUD {
-    extern "C" void _SET_TEXT_COLOR(int r, int g, int b, int a);
-    extern "C" void _SET_TEXT_SCALE(float scale, float size);
-    extern "C" void _DISPLAY_TEXT(const char* text, float x, float y);
-}
-namespace PAD {
-    extern "C" bool IS_CONTROL_PRESSED(int p0, Hash control);
-    extern "C" bool IS_CONTROL_JUST_PRESSED(int p0, Hash control);
-}
-namespace MISC {
-    extern "C" int GET_RANDOM_INT_IN_RANGE(int min, int max);
-    extern "C" float GET_DISTANCE_BETWEEN_COORDS(float x1, float y1, float z1, float x2, float y2, float z2, bool useZ);
+    inline void MONEY_ADD_CASH(int amount) { Invoke<void>(0xBC235322, amount); }
 }
 
 extern "C" void WAIT(int ms);
