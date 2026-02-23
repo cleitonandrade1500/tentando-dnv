@@ -1,12 +1,14 @@
 #ifndef NATIVES_H
 #define NATIVES_H
 
+#include <type_traits>
+
 typedef int Player; typedef int Entity; typedef int Ped; typedef int Object; typedef unsigned int Hash;
 typedef unsigned long uint64_t;
 
 struct Vector3 { float x, y, z; float padding; };
 
-// MOTOR DE INVOCAÇÃO (RESOLVE O ERRO 'NO MATCHING FUNCTION')
+// MOTOR DE INVOCAÇÃO CORRIGIDO
 extern "C" {
     void nativeInit(uint64_t hash);
     void nativePush(uint64_t val);
@@ -21,10 +23,15 @@ static T Invoke(uint64_t hash, Args... args) {
         nativePush(vars[i]);
     }
     uint64_t* res = nativeCall();
-    return *(T*)res;
+    
+    // CORREÇÃO DO ERRO DO PRINT:
+    if constexpr (std::is_same_v<T, void>) {
+        return; 
+    } else {
+        return *(T*)res;
+    }
 }
 
-// NAMESPACES COM HASHES ATUALIZADOS V1.32
 namespace PLAYER {
     inline Player PLAYER_ID() { return Invoke<Player>(0xEC6A0600); }
     inline Ped PLAYER_PED_ID() { return Invoke<Ped>(0x09697976); }
