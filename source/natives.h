@@ -2,9 +2,11 @@
 #define NATIVES_H
 
 typedef int Player; typedef int Entity; typedef int Ped; typedef int Object; typedef unsigned int Hash;
+typedef unsigned long uint64_t;
+
 struct Vector3 { float x, y, z; float padding; };
 
-// MOTOR DE INVOCAÇÃO (O que faltava para o código ter efeito)
+// MOTOR DE INVOCAÇÃO (RESOLVE O ERRO 'NO MATCHING FUNCTION')
 extern "C" {
     void nativeInit(uint64_t hash);
     void nativePush(uint64_t val);
@@ -15,16 +17,17 @@ template<typename T, typename... Args>
 static T Invoke(uint64_t hash, Args... args) {
     nativeInit(hash);
     uint64_t vars[] = { (uint64_t)args... };
-    for (int i = 0; i < sizeof...(args); i++) nativePush(vars[i]);
+    for (int i = 0; i < sizeof...(args); i++) {
+        nativePush(vars[i]);
+    }
     uint64_t* res = nativeCall();
     return *(T*)res;
 }
 
+// NAMESPACES COM HASHES ATUALIZADOS V1.32
 namespace PLAYER {
     inline Player PLAYER_ID() { return Invoke<Player>(0xEC6A0600); }
     inline Ped PLAYER_PED_ID() { return Invoke<Ped>(0x09697976); }
-    inline int GET_PLAYER_GROUP(Player p) { return Invoke<int>(0x12345678, p); } // Exemplo v1.32
-    inline bool GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(Player p, Entity* e) { return Invoke<bool>(0x2117A322, p, e); }
     inline void SET_PLAYER_WANTED_LEVEL(Player p, int l, bool p2) { Invoke<void>(0xB7A0914B, p, l, p2); }
 }
 
