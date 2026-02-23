@@ -1,7 +1,9 @@
 #ifndef NATIVES_H
 #define NATIVES_H
 
-// Tipos básicos para evitar dependências externas
+// RESOLVE O ERRO: unknown type name 'size_t'
+typedef unsigned long size_t;
+
 typedef int Player; 
 typedef int Entity; 
 typedef int Ped; 
@@ -11,14 +13,12 @@ typedef unsigned long uint64_t;
 
 struct Vector3 { float x, y, z; float padding; };
 
-// Funções de comunicação com o PS4/GoldHEN
 extern "C" {
     void nativeInit(uint64_t hash);
     void nativePush(uint64_t val);
     uint64_t* nativeCall();
 }
 
-// Template para funções que RETORNAM valor (Ex: Player ID)
 template<typename T, typename... Args>
 static T Invoke(uint64_t hash, Args... args) {
     nativeInit(hash);
@@ -28,8 +28,6 @@ static T Invoke(uint64_t hash, Args... args) {
     return *(T*)res;
 }
 
-// Template para funções VOID (Ex: Dinheiro, Nível de Procurado)
-// Isso resolve o erro de "indirection not permitted"
 template<typename... Args>
 static void InvokeVoid(uint64_t hash, Args... args) {
     nativeInit(hash);
@@ -48,6 +46,12 @@ namespace ENTITY {
     inline Vector3 GET_ENTITY_COORDS(Entity e, bool a) { return Invoke<Vector3>(0xA86D3333, e, a); }
     inline bool DOES_ENTITY_EXIST(Entity e) { return Invoke<bool>(0x367F4B72, e); }
     inline void DELETE_ENTITY(Entity* e) { InvokeVoid(0x37648392, e); }
+}
+
+// RESOLVE O ERRO: use of undeclared identifier 'STREAMING'
+namespace STREAMING {
+    inline void REQUEST_MODEL(Hash m, bool p1) { InvokeVoid(0xFA6A2322, m, p1); }
+    inline bool HAS_MODEL_LOADED(Hash m) { return Invoke<bool>(0x32334F22, m); }
 }
 
 namespace CASH {
