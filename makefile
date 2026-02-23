@@ -1,18 +1,17 @@
-# Nome do arquivo final gerado
 LIB_NAME := RDR2_Assalto_PRO_2026
-
 CXX      := clang++
 STRIP    := llvm-strip
 
-# CFLAGS: Removido stdinc++ para evitar o erro 'file not found'
+# CFLAGS: -nostdinc evita que o compilador procure arquivos que o Ubuntu não tem
 CFLAGS   := -target x86_64-pc-freebsd12-elf -O2 -std=c++11 \
             -fno-stack-protector -fPIC -fno-rtti -fno-exceptions \
-            -fms-extensions -I./source -D__PS4__ -nostdinc++
+            -fms-extensions -fno-builtin -I./source -D__PS4__ -nostdinc -nostdinc++
 
-# LDFLAGS: Configurações para o GoldHEN 2.4b
-LDFLAGS  := -target x86_64-pc-freebsd12-elf -shared \
-            -Wl,-gc-sections -Wl,-export-dynamic -nodefaultlibs \
-            -Wl,-z,max-page-size=0x4000 -Wl,-z,notext
+# LDFLAGS: -nostdlib resolve os erros 'cannot find crti.o' do seu print
+LDFLAGS  := -target x86_64-pc-freebsd12-elf -shared -nostdlib \
+            -Wl,-gc-sections -Wl,-export-dynamic \
+            -Wl,-z,max-page-size=0x4000 -Wl,-z,notext \
+            -Wl,--unresolved-symbols=ignore-all
 
 all: $(LIB_NAME).sprx
 
