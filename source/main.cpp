@@ -8,8 +8,7 @@ void LoopAssalto() {
     Ped pP = PLAYER::PLAYER_PED_ID(); 
     Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
 
-    // SUPORTE (L1 + SETA CIMA)
-    // Usando Invoke<bool> para leitura direta de botões (PAD)
+    // SUPORTE (L1 + SETA CIMA) - Usando Invoke direto para botões
     if (Invoke<bool>(0x58044322, 0, 0xF7D06352) && Invoke<bool>(0x58044322, 0, 0x911CB91D)) {
         tempoGuarda++;
         if (tempoGuarda >= 50) {
@@ -24,9 +23,8 @@ void LoopAssalto() {
     } else { tempoGuarda = 0; }
 }
 
-// Função de entrada do SPRX para o GoldHEN
 extern "C" int module_start(size_t argc, const void* args) {
-    for(int i = 0; i < 250; i++) { WAIT(100); } 
+    for(int i = 0; i < 200; i++) { WAIT(100); } 
     while (true) {
         LoopAssalto();
         WAIT(0);
