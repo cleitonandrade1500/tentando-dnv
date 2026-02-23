@@ -1,6 +1,5 @@
 #include "natives.h"
 
-// Variáveis Globais
 Ped meuGuarda = 0;
 int tempoGuarda = 0;
 
@@ -9,36 +8,28 @@ void LoopAssalto() {
     Ped pP = PLAYER::PLAYER_PED_ID(); 
     Vector3 pos = ENTITY::GET_ENTITY_COORDS(pP, true);
 
-    // 1. SUPORTE (L1 + SETA CIMA)
-    // Hashes de controles para v1.32
+    // SUPORTE (L1 + SETA CIMA)
+    // Usando Invoke<bool> para leitura direta de botões (PAD)
     if (Invoke<bool>(0x58044322, 0, 0xF7D06352) && Invoke<bool>(0x58044322, 0, 0x911CB91D)) {
         tempoGuarda++;
-        if (tempoGuarda >= 50) { // Reduzi o tempo para ser mais rápido
+        if (tempoGuarda >= 50) {
             Hash marston = 0x106561CA;
             STREAMING::REQUEST_MODEL(marston, false);
             if (STREAMING::HAS_MODEL_LOADED(marston)) {
+                if (ENTITY::DOES_ENTITY_EXIST(meuGuarda)) ENTITY::DELETE_ENTITY(&meuGuarda);
                 meuGuarda = Invoke<Ped>(0xD4335322, marston, pos.x + 2.0f, pos.y, pos.z, 0.0f, false, false, false, false);
                 tempoGuarda = 0;
             }
         }
-    }
-
-    // 2. DINHEIRO (Pressione R3 + L3 para ganhar 5000)
-    if (Invoke<bool>(0x58044322, 0, 0x62800322) && Invoke<bool>(0x58044322, 0, 0x62800323)) {
-        CASH::MONEY_ADD_CASH(500000); // 5000 cents = $50.00
-        WAIT(500); 
-    }
+    } else { tempoGuarda = 0; }
 }
 
-// FUNÇÃO DE ENTRADA DO GOLDHEN 2.4b
+// Função de entrada do SPRX para o GoldHEN
 extern "C" int module_start(size_t argc, const void* args) {
-    // Delay de segurança para o RDR2 v1.32 carregar os sistemas
-    for(int i = 0; i < 300; i++) { WAIT(100); } 
-
-    // O loop principal que faz o mod ter efeito
+    for(int i = 0; i < 250; i++) { WAIT(100); } 
     while (true) {
         LoopAssalto();
-        WAIT(0); // Devolve o processamento ao PS4 (Evita Crash)
+        WAIT(0);
     }
     return 0;
 }
